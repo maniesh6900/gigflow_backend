@@ -1,0 +1,61 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mongodb"
+}
+
+model User {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  gigs Gig[] @relation("GigOwner")
+  bids Bid[] @relation("BidFreelancer")
+}
+
+model Gig {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String
+  budget      Float
+  status      String   @default("open") // "open" or "assigned"
+  ownerId     String   @db.ObjectId
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner User  @relation("GigOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  bids  Bid[] @relation("GigBids")
+
+  @@index([status])
+  @@index([ownerId])
+}
+
+model Bid {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  gigId        String   @db.ObjectId
+  freelancerId String   @db.ObjectId
+  message      String
+  price        Float
+  status       String   @default("pending") // "pending", "hired", or "rejected"
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  gig        Gig  @relation("GigBids", fields: [gigId], references: [id], onDelete: Cascade)
+  freelancer User @relation("BidFreelancer", fields: [freelancerId], references: [id], onDelete: Cascade)
+
+  @@index([gigId])
+  @@index([freelancerId])
+  @@index([status])
+}
